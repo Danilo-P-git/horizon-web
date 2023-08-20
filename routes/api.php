@@ -18,4 +18,5 @@ use Illuminate\Support\Facades\Route;
 Route::get('countries', [CountryController::class, 'index']);
 Route::get('country/{code}', [CountryController::class, 'show']);
 Route::post('country/{code}/{category}', [CountryController::class, 'syncCategories']);
-Route::get('country/{code}/{category}', [COuntryController::class, 'news']);
+Route::get('news/{code}/{category}', [CountryController::class, 'news']);
+Route::get('paginate/news/{code}/{page?}', [CountryController::class, 'paginatedNews']);

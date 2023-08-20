@@ -35,7 +35,7 @@ class CountryController extends Controller
             });
 
             return response()->json([
-                "data" => $mappedCountries,
+                "result" => $mappedCountries,
                 "status" => 200,
                 "message" => "data recovered succesfuly"
             ], 200);
@@ -49,13 +49,13 @@ class CountryController extends Controller
         try {
             $cacheKey = 'country_' . $code;
 
-            $mappedCountry = CacheHandler::rememberData($cacheKey, 60, function () use ($code) {
+            $mappedCountry = CacheHandler::rememberData($cacheKey, 20, function () use ($code) {
                 $country = Country::where('code', $code)->with('languages', 'categories')->first();
                 return Country::transformData($country);
             });
 
             return response()->json([
-                "data" => $mappedCountry,
+                "result" => $mappedCountry,
                 "status" => 200,
                 "message" => "data recovered succesfuly"
             ], 200);
@@ -99,15 +99,37 @@ class CountryController extends Controller
     {
         $lang = $request->language;
 
-        $newsdataApiObj = new NewsDataApi(env('NEWS_API_KEY'));
+        $cacheKey = "news_{$code}_{$category}_{$lang}";
+        $minutes = 20;
 
-        $data = [
-            "country" => $code,
-            "category" => $category,
-            "language" => $lang,
-        ];
-        $response = $newsdataApiObj->get_latest_news($data);
+        return CacheHandler::rememberData($cacheKey, $minutes, function () use ($code, $category, $lang) {
+            $newsdataApiObj = new NewsDataApi(env('NEWS_API_KEY'));
 
-        return $response;
+            $data = [
+                "country" => $code,
+                "category" => $category,
+                "language" => $lang,
+            ];
+            return $newsdataApiObj->get_latest_news($data);
+        });
+    }
+
+    public function paginatedNews($code, int $page = null)
+    {
+        $languages = Country::with('languages')->where('code', $code)->first()->languages->pluck('language')->toArray();
+
+        $cacheKey = "news_{$code}_page_{$page}";
+        $minutes = 20;
+
+        return CacheHandler::rememberData($cacheKey, $minutes, function () use ($code, $languages, $page) {
+            $newsdataApiObj = new NewsDataApi(env('NEWS_API_KEY'));
+
+            $data = [
+                "country" => $code,
+                "language" => $languages,
+                "page" => $page
+            ];
+            return $newsdataApiObj->get_latest_news($data);
+        });
     }
 }
